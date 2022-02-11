@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <unistd.h>
+#include <climits>
 
 #include "instruction.hpp"
 
@@ -140,14 +141,16 @@ void Emulator::instr()
         interruptRequest(IRQ_USAGE_FAULT);
         return;
     }
-    execute();
+    if (execute() != EE_OK) {
+        interruptRequest(IRQ_USAGE_FAULT);
+        return;
+    }
     writeback();
 }
 
 int Emulator::fetch()
 {
     ushort& pc = registers_[REG_PC];
-
     ir_[IR_InstrDescr] = memory_[pc++]; // InstrDescr
 
     switch (ir_[IR_InstrDescr]) {
@@ -266,25 +269,37 @@ int Emulator::decode()
         case AM_REGDIR:
             if (regS >= NUM_REGISTERS)
                 return EE_REG;
-            B_ = registers_[IR_RegsDescr_RS(ir_)];
+            if (ir_[IR_InstrDescr] != OC_STR)
+                B_ = registers_[IR_RegsDescr_RS(ir_)];
             break;
         case AM_REGDIR_OFFSET:
             if (regS >= NUM_REGISTERS)
                 return EE_REG;
-            B_ = registers_[IR_RegsDescr_RS(ir_)] + IR_Data(ir_);
+            if (ir_[IR_InstrDescr] != OC_STR)
+                B_ = registers_[IR_RegsDescr_RS(ir_)] + IR_Data(ir_);
+            else
+                B_ = IR_Data(ir_);
             break;
         case AM_REGIND:
             if (regS >= NUM_REGISTERS)
                 return EE_REG;
-            B_ = readWord(registers_[IR_RegsDescr_RS(ir_)]);
-            break;
+            if (ir_[IR_InstrDescr] != OC_STR)
+                B_ = readWord(registers_[IR_RegsDescr_RS(ir_)]);
+            else
+                B_ = registers_[IR_RegsDescr_RS(ir_)];
         case AM_REGIND_OFFSET:
             if (regS >= NUM_REGISTERS)
                 return EE_REG;
-            B_ = readWord(registers_[IR_RegsDescr_RS(ir_)] + IR_Data(ir_));
+            if (ir_[IR_InstrDescr] != OC_STR)
+                B_ = readWord(registers_[IR_RegsDescr_RS(ir_)] + IR_Data(ir_));
+            else
+                B_ = registers_[IR_RegsDescr_RS(ir_)] + IR_Data(ir_);
             break;
         case AM_MEMDIR:
-            B_ = readWord(IR_Data(ir_));
+            if (ir_[IR_InstrDescr] != OC_STR)
+                B_ = readWord(IR_Data(ir_));
+            else
+                B_ = IR_Data(ir_);
             break;
         }
         break;
@@ -295,7 +310,120 @@ int Emulator::decode()
 
 int Emulator::execute()
 {
-    // TODO:
+    ushort& pc = registers_[REG_PC];
+    ushort& psw = registers_[REG_PSW];
+
+    switch (ir_[IR_InstrDescr]) {
+    case OC_HALT:
+        running_ = false;
+        break;
+    case OC_IRET:
+        pc = pop();
+        psw = pop();
+        break;
+    case OC_RET:
+        pc = pop();
+        break;
+    case OC_INT:
+        if (A_ < IVT_SIZE)
+            interruptRequest((IRQNo)A_);
+        else
+            return EE_OPERAND; // invalid ivt table entry
+        break;
+    case OC_CALL:
+        push(pc);
+        pc = B_;
+        break;
+    case OC_JMP:
+        pc = B_;
+        break;
+    case OC_JEQ:
+        if (psw & PSW_Z) // Z == 1
+            pc = B_;
+        break;
+    case OC_JNE:
+        if (!(psw & PSW_Z)) // Z == 0
+            pc = B_;
+        break;
+    case OC_JGT:
+        if (((psw & PSW_N) == (psw & PSW_O)) && !(psw & PSW_Z)) // (N == O) && (Z == 0)
+            pc = B_;
+        break;
+    case OC_XCHG: {
+        ushort temp = A_;
+        A_ = B_;
+        B_ = temp;
+    }
+        break;
+    case OC_ADD:
+        C_ = A_ + B_;
+        break;
+    case OC_SUB:
+        C_ = A_ - B_;
+        break;
+    case OC_MUL:
+        C_ = A_ * B_;
+        break;
+    case OC_DIV:
+        C_ = A_ / B_;
+        break;
+    case OC_CMP: {
+        uint temp = A_ - B_;
+        if (temp == 0)
+            psw |= PSW_Z;
+        if (temp > UINT16_MAX)
+            psw |= PSW_O | PSW_C;
+        if (temp & (1u << 15u))
+            psw |= PSW_N;
+    }
+        break;
+    case OC_NOT:
+        C_ = ~A_;
+        break;
+    case OC_AND:
+        C_ = A_ & B_;
+        break;
+    case OC_OR:
+        C_ = A_ | B_;
+        break;
+    case OC_XOR:
+        C_ = A_ ^ B_;
+        break;
+    case OC_TEST: {
+        ushort temp = A_ & B_;
+        if (temp == 0)
+            psw |= PSW_Z;
+        if (temp & (1u << 15u))
+            psw |= PSW_N;
+    }
+        break;
+    case OC_SHL:
+        psw &= ~(PSW_Z | PSW_C | PSW_N);
+        if ((A_ << (B_ - 1u)) & (1u << 15u))
+            psw |= PSW_C;
+        C_ = A_ << B_;
+        if (C_ == 0)
+            psw |= PSW_Z;
+        if (C_ & (1u << 15u))
+            psw |= PSW_N;
+        break;
+    case OC_SHR:
+        psw &= ~(PSW_Z | PSW_C | PSW_N);
+        if (((int16_t)A_ >> ((int16_t)B_ - 1)) & 1)
+            psw |= PSW_C;
+        C_ = (int16_t)A_ >> (int16_t)B_;
+        if (C_ == 0)
+            psw |= PSW_Z;
+        if (C_ & (1u << 15u))
+            psw |= PSW_N;
+        break;
+    case OC_LDR:
+        C_ = B_;
+        break;
+    case OC_STR:
+        C_ = A_;
+        break;
+    }
 
     return EE_OK;
 }

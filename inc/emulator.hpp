@@ -17,7 +17,8 @@ enum EmulatorExitCode: int
     EE_FILE = 1,
     EE_OPCODE = 2,
     EE_ADDR_MODE = 3,
-    EE_REG = 4
+    EE_REG = 4,
+    EE_OPERAND = 5
 };
 
 #define MEMORY_SIZE 0x10000 // 64kB
