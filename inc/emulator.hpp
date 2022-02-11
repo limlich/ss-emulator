@@ -67,6 +67,7 @@ private:
     ushort timCfg_;
 
     ubyte ir_[5]; // instruction register
+    ushort A_, B_, C_;
 
     // timer
     std::chrono::high_resolution_clock::time_point t0_;

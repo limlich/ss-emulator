@@ -219,7 +219,76 @@ int Emulator::fetch()
 
 int Emulator::decode()
 {
-    // TODO:
+    ubyte regD = IR_RegsDescr_RD(ir_);
+    ubyte regS = IR_RegsDescr_RS(ir_);
+
+    // check register validity
+    switch (ir_[IR_InstrDescr]) {
+    case OC_HALT:
+    case OC_IRET:
+    case OC_RET:
+        break;
+    case OC_XCHG:
+    case OC_ADD:
+    case OC_SUB:
+    case OC_MUL:
+    case OC_DIV:
+    case OC_CMP:
+    case OC_AND:
+    case OC_OR:
+    case OC_XOR:
+    case OC_TEST:
+    case OC_SHL:
+    case OC_SHR:
+        if (regS >= NUM_REGISTERS)
+            return EE_REG;
+        B_ = registers_[IR_RegsDescr_RS(ir_)];
+    case OC_INT:
+    case OC_NOT:
+        if (regD >= NUM_REGISTERS)
+            return EE_REG;
+        A_ = registers_[IR_RegsDescr_RD(ir_)];
+        break;
+    case OC_LDR:
+    case OC_STR:
+        if (regD >= NUM_REGISTERS)
+            return EE_REG;
+        A_ = registers_[IR_RegsDescr_RD(ir_)];
+    case OC_CALL:
+    case OC_JMP:
+    case OC_JEQ:
+    case OC_JNE:
+    case OC_JGT:
+        switch (IR_AddrMode_AM(ir_)) {
+        case AM_IMMED:
+            B_ = IR_Data(ir_);
+            break;
+        case AM_REGDIR:
+            if (regS >= NUM_REGISTERS)
+                return EE_REG;
+            B_ = registers_[IR_RegsDescr_RS(ir_)];
+            break;
+        case AM_REGDIR_OFFSET:
+            if (regS >= NUM_REGISTERS)
+                return EE_REG;
+            B_ = registers_[IR_RegsDescr_RS(ir_)] + IR_Data(ir_);
+            break;
+        case AM_REGIND:
+            if (regS >= NUM_REGISTERS)
+                return EE_REG;
+            B_ = readWord(registers_[IR_RegsDescr_RS(ir_)]);
+            break;
+        case AM_REGIND_OFFSET:
+            if (regS >= NUM_REGISTERS)
+                return EE_REG;
+            B_ = readWord(registers_[IR_RegsDescr_RS(ir_)] + IR_Data(ir_));
+            break;
+        case AM_MEMDIR:
+            B_ = readWord(IR_Data(ir_));
+            break;
+        }
+        break;
+    }
 
     return EE_OK;
 }
