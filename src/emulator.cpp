@@ -31,6 +31,7 @@ int Emulator::init(const std::string& inFilename)
         std::cout << "Cannot open file for reading: " << inFilename << std::endl;
         return EE_FILE;
     }
+    inFilename_ = inFilename;
     
     // init memory
     memory_.resize(MEMORY_SIZE);
