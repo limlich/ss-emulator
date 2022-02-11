@@ -66,6 +66,6 @@ enum IRByte: ubyte
 #define IR_RegsDescr_RS(ir) ((ir)[IR_RegsDescr] & 0x0Fu)
 #define IR_AddrMode_Up(ir) ((ir)[IR_AddrMode] >> 4u)
 #define IR_AddrMode_AM(ir) ((ir)[IR_AddrMode] & 0x0Fu)
-#define IR_Data(ir) (((ushort)(ir)[IR_DataLow] << (ushort)8) | (ushort)(ir)[IR_DataHigh])
+#define IR_Data(ir) (((ushort)(ir)[IR_DataHigh] << (ushort)8) | (ushort)(ir)[IR_DataLow])
 
 #endif
