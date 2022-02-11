@@ -24,21 +24,25 @@ enum Opcode : ubyte
     OC_IRET = 0x20u,
     OC_CALL = 0x30u,
     OC_RET  = 0x40u,
+    OC_GROUP_JUMP = 0x50u,
     OC_JMP  = 0x50u,
     OC_JEQ  = 0x51u,
     OC_JNE  = 0x52u,
     OC_JGT  = 0x53u,
     OC_XCHG = 0x60u,
+    OC_GROUP_ARITHMETICAL = 0x70u,
     OC_ADD  = 0x70u,
     OC_SUB  = 0x71u,
     OC_MUL  = 0x72u,
     OC_DIV  = 0x73u,
     OC_CMP  = 0x74u,
+    OC_GROUP_LOGICAL = 0x80u,
     OC_NOT  = 0x80u,
     OC_AND  = 0x81u,
     OC_OR   = 0x82u,
     OC_XOR  = 0x83u,
     OC_TEST = 0x84u,
+    OC_GROUP_SHIFT = 0x90u,
     OC_SHL  = 0x90u,
     OC_SHR  = 0x91u,
     OC_LDR  = 0xA0u,
@@ -55,5 +59,13 @@ enum IRByte: ubyte
     IR_DataHigh = 3u,
     IR_DataLow = 4u
 };
+
+#define IR_InstrDescr_OC(ir) ((ir)[IR_InstrDescr] & 0xF0u)
+#define IR_InstrDescr_MOD(ir) ((ir)[IR_InstrDescr] & 0x0Fu)
+#define IR_RegsDescr_RD(ir) ((ir)[IR_RegsDescr] >> 4u)
+#define IR_RegsDescr_RS(ir) ((ir)[IR_RegsDescr] & 0x0Fu)
+#define IR_AddrMode_Up(ir) ((ir)[IR_AddrMode] >> 4u)
+#define IR_AddrMode_AM(ir) ((ir)[IR_AddrMode] & 0x0Fu)
+#define IR_Data(ir) (((ushort)(ir)[IR_DataLow] << (ushort)8) | (ushort)(ir)[IR_DataHigh])
 
 #endif

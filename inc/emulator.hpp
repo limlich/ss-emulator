@@ -15,6 +15,9 @@ enum EmulatorExitCode: int
 {
     EE_OK = 0,
     EE_FILE = 1,
+    EE_OPCODE = 2,
+    EE_ADDR_MODE = 3,
+    EE_REG = 4
 };
 
 #define MEMORY_SIZE 0x10000 // 64kB
@@ -34,10 +37,10 @@ private:
     void handleInput();
     void updateTimer();
     void instr();
-    void fetch();
-    void decode();
-    void execute();
-    void writeback();
+    int fetch();
+    int decode();
+    int execute();
+    int writeback();
     void intr();
 
     void interruptRequest(IRQNo irqNo);

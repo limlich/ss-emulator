@@ -100,6 +100,7 @@ int Emulator::loop()
         handleInput();
         updateTimer();
         instr();
+        intr();
     }
 
     return EE_OK;
@@ -131,14 +132,19 @@ void Emulator::updateTimer()
 
 void Emulator::instr()
 {
-    fetch();
-    decode();
+    if (fetch() != EE_OK) {
+        interruptRequest(IRQ_USAGE_FAULT);
+        return;
+    }
+    if (decode() != EE_OK) {
+        interruptRequest(IRQ_USAGE_FAULT);
+        return;
+    }
     execute();
     writeback();
-    intr();
 }
 
-void Emulator::fetch()
+int Emulator::fetch()
 {
     ushort& pc = registers_[REG_PC];
 
@@ -148,13 +154,13 @@ void Emulator::fetch()
     case OC_HALT:
     case OC_IRET:
     case OC_RET:
-        return;
-    }
-
-    ir_[IR_RegsDescr] = memory_[pc++]; // RegsDescr
-
-    switch (ir_[IR_InstrDescr]) {
+        return EE_OK; // instr size: 1 byte
     case OC_INT:
+    case OC_CALL:
+    case OC_JMP:
+    case OC_JEQ:
+    case OC_JNE:
+    case OC_JGT:
     case OC_XCHG:
     case OC_ADD:
     case OC_SUB:
@@ -168,34 +174,68 @@ void Emulator::fetch()
     case OC_TEST:
     case OC_SHL:
     case OC_SHR:
-        return;
+    case OC_LDR:
+    case OC_STR:
+        break;
+    default:
+        return EE_OPCODE; // invalid opcode
+    }
+
+    ir_[IR_RegsDescr] = memory_[pc++]; // RegsDescr
+
+    switch (IR_InstrDescr_OC(ir_)) {
+    case OC_INT:
+    case OC_XCHG:
+    case OC_GROUP_ARITHMETICAL:
+    case OC_GROUP_LOGICAL:
+    case OC_GROUP_SHIFT:
+        return EE_OK; // instr size: 2 bytes
     }
 
     ir_[IR_AddrMode] = memory_[pc++]; // AddrMode
 
-    switch (ir_[IR_AddrMode]) {
+    switch (IR_AddrMode_AM(ir_)) {
+    case AM_IMMED:
+        if (ir_[IR_InstrDescr] == OC_STR)
+            return EE_ADDR_MODE;
     case AM_REGDIR:
     case AM_REGIND:
-        return;
+        return EE_OK; // instr size: 3 bytes
+    case AM_MEMDIR:
+    case AM_REGDIR_OFFSET:
+    case AM_REGIND_OFFSET:
+        break;
+    default:
+        return EE_ADDR_MODE; // invalid addr mode
     }
+
+    // instr size: 5 bytes
 
     ir_[IR_DataHigh] = memory_[pc++]; // DataHigh
     ir_[IR_DataLow] = memory_[pc++]; // DataLow
+
+    return EE_OK;
 }
 
-void Emulator::decode()
+int Emulator::decode()
 {
     // TODO:
+
+    return EE_OK;
 }
 
-void Emulator::execute()
+int Emulator::execute()
 {
     // TODO:
+
+    return EE_OK;
 }
 
-void Emulator::writeback()
+int Emulator::writeback()
 {
     // TODO:
+
+    return EE_OK;
 }
 
 void Emulator::intr()
