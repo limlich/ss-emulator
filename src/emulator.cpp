@@ -30,7 +30,6 @@ int Emulator::init(const std::string& inFilename)
     }
     
     // init memory
-    const unsigned MEMORY_SIZE = 0x10000;
     memory_.resize(MEMORY_SIZE);
 
     std::string line;
@@ -62,10 +61,7 @@ int Emulator::init(const std::string& inFilename)
     // init memory mapped registers
     termIn_ = 0;
     termOut_ = 0;
-    timCfg_ = 0;
-
-    // init timer
-    // TODO:
+    timCfg_ = INITIAL_TIM_CFG;
 
     // init irq
     irq_ = 0;
@@ -80,6 +76,10 @@ int Emulator::init(const std::string& inFilename)
     tcsetattr(STDIN_FILENO, TCSANOW, &tRawStdin);
     // no output buffering
     setbuf(stdout, NULL);
+
+    // init timer
+    interval_ = TIM_CFG_INTERVALS[timCfg_];
+    t0_ = std::chrono::high_resolution_clock::now();
 
     running_ = true;
 
@@ -121,7 +121,12 @@ void Emulator::handleInput()
 
 void Emulator::updateTimer()
 {
-    // TODO: update timer
+    auto t1 = std::chrono::high_resolution_clock::now();
+    auto elapsed = (t1 - t0_) / std::chrono::milliseconds(1);
+    if (elapsed >= interval_) {
+        t0_ = std::chrono::high_resolution_clock::now();
+        interruptRequest(IVT_TIMER);
+    }
 }
 
 void Emulator::instr()
@@ -175,6 +180,7 @@ void Emulator::writeWord(ushort addr, ushort val)
             break;
         case MREG_TIM_CFG:
             timCfg_ = val;
+            interval_ = TIM_CFG_INTERVALS[timCfg_];
             break;
         default:
             // interruptRequest(IVT_USAGE_FAULT);

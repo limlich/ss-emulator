@@ -8,6 +8,7 @@
 
 #include "register.hpp"
 #include "ivt.hpp"
+#include "timer.hpp"
 #include "types.hpp"
 
 enum EmulatorExitCode: int
@@ -15,6 +16,8 @@ enum EmulatorExitCode: int
     EE_OK = 0,
     EE_FILE = 1,
 };
+
+#define MEMORY_SIZE 0x10000 // 64kB
 
 class Emulator
 {
@@ -46,6 +49,10 @@ private:
     ushort termIn_;
     ushort termOut_;
     ushort timCfg_;
+
+    // timer
+    std::chrono::high_resolution_clock::time_point t0_;
+    uint interval_;
 
     // interrupt requests
     ubyte irq_;
