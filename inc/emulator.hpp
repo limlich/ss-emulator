@@ -63,6 +63,8 @@ private:
     ushort termOut_;
     ushort timCfg_;
 
+    ubyte ir_[5]; // instruction register
+
     // timer
     std::chrono::high_resolution_clock::time_point t0_;
     uint interval_;

@@ -47,4 +47,13 @@ enum Opcode : ubyte
     OC_POP  = 0xA0u,
 };
 
+enum IRByte: ubyte
+{
+    IR_InstrDescr = 0u,
+    IR_RegsDescr = 1u,
+    IR_AddrMode = 2u,
+    IR_DataHigh = 3u,
+    IR_DataLow = 4u
+};
+
 #endif

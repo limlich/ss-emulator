@@ -3,7 +3,7 @@
 #include <iostream>
 #include <unistd.h>
 
-#include "ivt.hpp"
+#include "instruction.hpp"
 
 Emulator::Emulator()
 {}
@@ -140,7 +140,47 @@ void Emulator::instr()
 
 void Emulator::fetch()
 {
-    // TODO:
+    ushort& pc = registers_[REG_PC];
+
+    ir_[IR_InstrDescr] = memory_[pc++]; // InstrDescr
+
+    switch (ir_[IR_InstrDescr]) {
+    case OC_HALT:
+    case OC_IRET:
+    case OC_RET:
+        return;
+    }
+
+    ir_[IR_RegsDescr] = memory_[pc++]; // RegsDescr
+
+    switch (ir_[IR_InstrDescr]) {
+    case OC_INT:
+    case OC_XCHG:
+    case OC_ADD:
+    case OC_SUB:
+    case OC_MUL:
+    case OC_DIV:
+    case OC_CMP:
+    case OC_NOT:
+    case OC_AND:
+    case OC_OR:
+    case OC_XOR:
+    case OC_TEST:
+    case OC_SHL:
+    case OC_SHR:
+        return;
+    }
+
+    ir_[IR_AddrMode] = memory_[pc++]; // AddrMode
+
+    switch (ir_[IR_AddrMode]) {
+    case AM_REGDIR:
+    case AM_REGIND:
+        return;
+    }
+
+    ir_[IR_DataHigh] = memory_[pc++]; // DataHigh
+    ir_[IR_DataLow] = memory_[pc++]; // DataLow
 }
 
 void Emulator::decode()
