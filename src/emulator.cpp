@@ -195,12 +195,12 @@ int Emulator::fetch()
     ir_[IR_AddrMode] = memory_[pc++]; // AddrMode
 
     switch (IR_AddrMode_AM(ir_)) {
-    case AM_IMMED:
-        if (ir_[IR_InstrDescr] == OC_STR)
-            return EE_ADDR_MODE;
     case AM_REGDIR:
     case AM_REGIND:
         return EE_OK; // instr size: 3 bytes
+    case AM_IMMED:
+        if (ir_[IR_InstrDescr] == OC_STR)
+            return EE_ADDR_MODE;
     case AM_MEMDIR:
     case AM_REGDIR_OFFSET:
     case AM_REGIND_OFFSET:
