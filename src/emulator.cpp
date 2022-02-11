@@ -276,7 +276,7 @@ void Emulator::intr()
     push(psw);
     push(pc);
 
-    psw &= PSW_I; // mask interrupts
+    psw |= PSW_I; // mask interrupts
     pc = readWord(IRQ_ADDR(irqNo));
 }
 
