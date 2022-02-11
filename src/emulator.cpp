@@ -19,6 +19,8 @@ int Emulator::run(const std::string& inFilename)
         terminate();
     }
 
+    std::cout << std::endl;
+
     return res;
 }
 
