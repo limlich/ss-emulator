@@ -3,20 +3,20 @@
 
 #include "types.hpp"
 
-enum IVTEntry: ubyte
+enum IRQNo: ubyte
 {
-    IVT_RESET = 0u,
-    IVT_USAGE_FAULT = 1u,
-    IVT_TIMER = 2u,
-    IVT_TERMINAL = 3u,
-    IVT_IRQ0 = 4u,
-    IVT_IRQ1 = 5u,
-    IVT_IRQ2 = 6u,
-    IVT_IRQ3 = 7u,
+    IRQ_RESET = 0u,
+    IRQ_USAGE_FAULT = 1u,
+    IRQ_TIMER = 2u,
+    IRQ_TERMINAL = 3u,
+    IRQ_4 = 4u,
+    IRQ_5 = 5u,
+    IRQ_6 = 6u,
+    IRQ_7 = 7u,
     IVT_SIZE
 };
 
 #define IVT_START 0x0000u
-#define IVT_OFFSET(ivtEntry) (IVT_START + ((ivtEntry) << 2u))
+#define IRQ_ADDR(irqNo) (IVT_START + ((irqNo) << 1u))
 
 #endif

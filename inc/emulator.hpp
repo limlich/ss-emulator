@@ -34,12 +34,25 @@ private:
     void handleInput();
     void updateTimer();
     void instr();
-    void interruptRequest(IVTEntry ivtEntry);
+    void fetch();
+    void decode();
+    void execute();
+    void writeback();
+    void intr();
+
+    void interruptRequest(IRQNo irqNo);
+    bool interruptQuery(IRQNo irqNo);
+    void interruptClear(IRQNo irqNo);
+
+    void push(ushort val);
+    ushort pop();
 
     ushort readWord(ushort addr) const;
     void writeWord(ushort addr, ushort val);
 
 private:
+    std::string inFilename_;
+
     termios tOldStdin_;
     bool running_;
 

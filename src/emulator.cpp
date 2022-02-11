@@ -54,7 +54,7 @@ int Emulator::init(const std::string& inFilename)
     }
 
     // init registers
-    registers_[REG_PC] = *((ushort*)&memory_[IVT_OFFSET(IVT_RESET)]);
+    registers_[REG_PC] = readWord(IRQ_ADDR(IRQ_RESET));
     registers_[REG_SP] = INITIAL_SP;
     registers_[REG_PSW] = INITIAL_PSW;
 
@@ -116,7 +116,7 @@ void Emulator::handleInput()
         running_ = false;
 
     writeWord(MREG_TERM_IN, (ushort)in);
-    interruptRequest(IVT_TERMINAL);
+    interruptRequest(IRQ_TERMINAL);
 }
 
 void Emulator::updateTimer()
@@ -125,18 +125,106 @@ void Emulator::updateTimer()
     auto elapsed = (t1 - t0_) / std::chrono::milliseconds(1);
     if (elapsed >= interval_) {
         t0_ = std::chrono::high_resolution_clock::now();
-        interruptRequest(IVT_TIMER);
+        interruptRequest(IRQ_TIMER);
     }
 }
 
 void Emulator::instr()
 {
-    // TODO: fetch, decode, execute, intr
+    fetch();
+    decode();
+    execute();
+    writeback();
+    intr();
 }
 
-void Emulator::interruptRequest(IVTEntry ivtEntry)
+void Emulator::fetch()
 {
-    irq_ |= (1u << ivtEntry);
+    // TODO:
+}
+
+void Emulator::decode()
+{
+    // TODO:
+}
+
+void Emulator::execute()
+{
+    // TODO:
+}
+
+void Emulator::writeback()
+{
+    // TODO:
+}
+
+void Emulator::intr()
+{
+    ushort& psw = registers_[REG_PSW];
+
+    ubyte irqNo;
+    bool accepted = false;
+    for (irqNo = 0; irqNo < IVT_SIZE; irqNo++) {
+        if (!interruptQuery((IRQNo)irqNo))
+            continue;
+        
+        if (irqNo == IRQ_RESET) { // nmi
+            terminate();
+            init(inFilename_);
+            return;
+        } else if (irqNo == IRQ_USAGE_FAULT) { // nmi
+            accepted = true;
+            break;
+        } else { // maskable interrupts
+            if (psw & PSW_I)
+                break;
+            if (irqNo == IRQ_TIMER && psw & PSW_Tr)
+                continue;
+            if (irqNo == IRQ_TERMINAL && psw & PSW_Tl)
+                continue;
+            accepted = true;
+            break;
+        }
+    }
+    if (!accepted)
+        return;
+
+    interruptClear((IRQNo)irqNo);
+    
+    ushort& pc = registers_[REG_PC];
+
+    push(psw);
+    push(pc);
+
+    psw &= PSW_I; // mask interrupts
+    pc = readWord(IRQ_ADDR(irqNo));
+}
+
+void Emulator::interruptRequest(IRQNo irqNo)
+{
+    irq_ |= (1u << irqNo);
+}
+bool Emulator::interruptQuery(IRQNo irqNo)
+{
+    return irq_ & (1u << irqNo);
+}
+void Emulator::interruptClear(IRQNo irqNo)
+{
+    irq_ &= ~(1u << irqNo);
+}
+
+void Emulator::push(ushort val)
+{
+    ushort& sp = registers_[REG_SP];
+    sp -= 2;
+    writeWord(sp, val);
+}
+ushort Emulator::pop()
+{
+    ushort& sp = registers_[REG_SP];
+    ushort val = readWord(sp);
+    sp += 2;
+    return val;
 }
 
 ushort Emulator::readWord(ushort addr) const
