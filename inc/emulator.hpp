@@ -51,6 +51,9 @@ private:
     void push(ushort val);
     ushort pop();
 
+    void preUpdateRegister(ushort& reg);
+    void postUpdateRegister(ushort& reg);
+
     ushort readWord(ushort addr) const;
     void writeWord(ushort addr, ushort val);
 

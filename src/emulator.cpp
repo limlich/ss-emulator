@@ -280,20 +280,29 @@ int Emulator::decode()
             else
                 B_ = IR_Data(ir_);
             break;
-        case AM_REGIND:
+        case AM_REGIND: {
             if (regS >= NUM_REGISTERS)
                 return EE_REG;
+            ushort& regS = registers_[IR_RegsDescr_RS(ir_)];
+            preUpdateRegister(regS);
             if (ir_[IR_InstrDescr] != OC_STR)
-                B_ = readWord(registers_[IR_RegsDescr_RS(ir_)]);
+                B_ = readWord(regS);
             else
-                B_ = registers_[IR_RegsDescr_RS(ir_)];
-        case AM_REGIND_OFFSET:
+                B_ = regS;
+            postUpdateRegister(regS);
+        }
+            break;
+        case AM_REGIND_OFFSET: {
             if (regS >= NUM_REGISTERS)
                 return EE_REG;
+            ushort& regS = registers_[IR_RegsDescr_RS(ir_)];
+            preUpdateRegister(regS);
             if (ir_[IR_InstrDescr] != OC_STR)
-                B_ = readWord(registers_[IR_RegsDescr_RS(ir_)] + IR_Data(ir_));
+                B_ = readWord(regS + IR_Data(ir_));
             else
-                B_ = registers_[IR_RegsDescr_RS(ir_)] + IR_Data(ir_);
+                B_ = regS + IR_Data(ir_);
+            postUpdateRegister(regS);
+        }
             break;
         case AM_MEMDIR:
             if (ir_[IR_InstrDescr] != OC_STR)
@@ -430,7 +439,33 @@ int Emulator::execute()
 
 int Emulator::writeback()
 {
-    // TODO:
+    switch (IR_InstrDescr_OC(ir_)) {
+    case OC_XCHG:
+        registers_[IR_RegsDescr_RD(ir_)] = B_;
+        registers_[IR_RegsDescr_RS(ir_)] = A_;
+        break;
+    case OC_GROUP_ARITHMETICAL:
+    case OC_GROUP_LOGICAL:
+    case OC_GROUP_SHIFT:
+    case OC_LDR:
+        registers_[IR_RegsDescr_RD(ir_)] = C_;
+        break;
+    case OC_STR:
+        switch (IR_AddrMode_AM(ir_)) {
+        case AM_REGDIR:
+            registers_[IR_RegsDescr_RS(ir_)] = C_;
+            break;
+        case AM_REGDIR_OFFSET:
+            registers_[IR_RegsDescr_RS(ir_)] = C_ + IR_Data(ir_);
+            break;
+        case AM_REGIND:
+        case AM_REGIND_OFFSET:
+        case AM_MEMDIR:
+            writeWord(B_, C_);
+            break;
+        break;
+        }
+    }
 
     return EE_OK;
 }
@@ -502,6 +537,29 @@ ushort Emulator::pop()
     ushort val = readWord(sp);
     sp += 2;
     return val;
+}
+
+void Emulator::preUpdateRegister(ushort& reg)
+{
+    switch (IR_AddrMode_Up(ir_)) {
+    case REGIND_PRE_INC:
+        reg += 2;
+        break;
+    case REGIND_PRE_DEC:
+        reg -= 2;
+        break;
+    }
+}
+void Emulator::postUpdateRegister(ushort& reg)
+{
+    switch (IR_AddrMode_Up(ir_)) {
+    case REGIND_POST_INC:
+        reg += 2;
+        break;
+    case REGIND_POST_DEC:
+        reg -= 2;
+        break;
+    }
 }
 
 ushort Emulator::readWord(ushort addr) const
