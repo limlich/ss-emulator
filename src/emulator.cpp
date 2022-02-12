@@ -350,15 +350,15 @@ int Emulator::execute()
         pc = B_;
         break;
     case OC_JEQ:
-        if (psw & PSW_Z) // Z == 1
+        if (PSW_Z(psw)) // Z == 1
             pc = B_;
         break;
     case OC_JNE:
-        if (!(psw & PSW_Z)) // Z == 0
+        if (!PSW_Z(psw)) // Z == 0
             pc = B_;
         break;
     case OC_JGT:
-        if (((bool)(psw & PSW_N) == (bool)(psw & PSW_O)) && !(psw & PSW_Z)) // (N == O) && (Z == 0)
+        if ((PSW_N(psw) == PSW_O(psw)) && !PSW_Z(psw)) // (N == O) && (Z == 0)
             pc = B_;
         break;
     case OC_XCHG:
@@ -376,20 +376,20 @@ int Emulator::execute()
         C_ = A_ / B_;
         break;
     case OC_CMP: {
-        psw &= ~(PSW_Z | PSW_O | PSW_C | PSW_N);
+        psw &= ~(PSW_BIT_Z | PSW_BIT_O | PSW_BIT_C | PSW_BIT_N);
         B_ = -B_;
         uint temp = A_ + B_;
         bool Asgn = A_ & USHORT_SIGN_BIT;
         bool Bsgn = B_ & USHORT_SIGN_BIT;
         bool tempsgn = temp & USHORT_SIGN_BIT;
         if ((ushort)temp == 0)
-            psw |= PSW_Z;
+            psw |= PSW_BIT_Z;
         if ((Asgn == Bsgn) && (Asgn != tempsgn))
-            psw |= PSW_O;
+            psw |= PSW_BIT_O;
         if (temp > UINT16_MAX)
-            psw |= PSW_C;
+            psw |= PSW_BIT_C;
         if (tempsgn)
-            psw |= PSW_N;
+            psw |= PSW_BIT_N;
     }
         break;
     case OC_NOT:
@@ -405,33 +405,33 @@ int Emulator::execute()
         C_ = A_ ^ B_;
         break;
     case OC_TEST: {
-        psw &= ~(PSW_Z | PSW_N);
+        psw &= ~(PSW_BIT_Z | PSW_BIT_N);
         ushort temp = A_ & B_;
         if (temp == 0)
-            psw |= PSW_Z;
+            psw |= PSW_BIT_Z;
         if (temp & USHORT_SIGN_BIT)
-            psw |= PSW_N;
+            psw |= PSW_BIT_N;
     }
         break;
     case OC_SHL:
-        psw &= ~(PSW_Z | PSW_C | PSW_N);
+        psw &= ~(PSW_BIT_Z | PSW_BIT_C | PSW_BIT_N);
         if ((A_ << (B_ - 1u)) & USHORT_SIGN_BIT)
-            psw |= PSW_C;
+            psw |= PSW_BIT_C;
         C_ = A_ << B_;
         if (C_ == 0)
-            psw |= PSW_Z;
+            psw |= PSW_BIT_Z;
         if (C_ & USHORT_SIGN_BIT)
-            psw |= PSW_N;
+            psw |= PSW_BIT_N;
         break;
     case OC_SHR:
-        psw &= ~(PSW_Z | PSW_C | PSW_N);
+        psw &= ~(PSW_BIT_Z | PSW_BIT_C | PSW_BIT_N);
         if (((int16_t)A_ >> ((int16_t)B_ - 1)) & 1)
-            psw |= PSW_C;
+            psw |= PSW_BIT_C;
         C_ = (int16_t)A_ >> (int16_t)B_;
         if (C_ == 0)
-            psw |= PSW_Z;
+            psw |= PSW_BIT_Z;
         if (C_ & USHORT_SIGN_BIT)
-            psw |= PSW_N;
+            psw |= PSW_BIT_N;
         break;
     case OC_LDR:
         C_ = B_;
@@ -495,11 +495,11 @@ void Emulator::intr()
             accepted = true;
             break;
         } else { // maskable interrupts
-            if (psw & PSW_I)
+            if (PSW_I(psw))
                 break;
-            if (irqNo == IRQ_TIMER && psw & PSW_Tr)
+            if (irqNo == IRQ_TIMER && PSW_Tr(psw))
                 continue;
-            if (irqNo == IRQ_TERMINAL && psw & PSW_Tl)
+            if (irqNo == IRQ_TERMINAL && PSW_Tl(psw))
                 continue;
             accepted = true;
             break;
@@ -515,7 +515,7 @@ void Emulator::intr()
     push(psw);
     push(pc);
 
-    psw |= PSW_I; // mask interrupts
+    psw |= PSW_BIT_I; // mask interrupts
     pc = readWord(IRQ_ADDR(irqNo));
 }
 
