@@ -380,12 +380,19 @@ int Emulator::execute()
         C_ = A_ / B_;
         break;
     case OC_CMP: {
-        uint temp = A_ - B_;
-        if (temp == 0)
+        psw &= ~(PSW_Z | PSW_O | PSW_C | PSW_N);
+        B_ = -B_;
+        uint temp = A_ + B_;
+        bool Asgn = A_ & USHORT_SIGN_BIT;
+        bool Bsgn = B_ & USHORT_SIGN_BIT;
+        bool tempsgn = temp & USHORT_SIGN_BIT;
+        if ((ushort)temp == 0)
             psw |= PSW_Z;
+        if ((Asgn == Bsgn) && (Asgn != tempsgn))
+            psw |= PSW_O;
         if (temp > UINT16_MAX)
-            psw |= PSW_O | PSW_C;
-        if (temp & (1u << 15u))
+            psw |= PSW_C;
+        if (tempsgn)
             psw |= PSW_N;
     }
         break;
@@ -402,21 +409,22 @@ int Emulator::execute()
         C_ = A_ ^ B_;
         break;
     case OC_TEST: {
+        psw &= ~(PSW_Z | PSW_N);
         ushort temp = A_ & B_;
         if (temp == 0)
             psw |= PSW_Z;
-        if (temp & (1u << 15u))
+        if (temp & USHORT_SIGN_BIT)
             psw |= PSW_N;
     }
         break;
     case OC_SHL:
         psw &= ~(PSW_Z | PSW_C | PSW_N);
-        if ((A_ << (B_ - 1u)) & (1u << 15u))
+        if ((A_ << (B_ - 1u)) & USHORT_SIGN_BIT)
             psw |= PSW_C;
         C_ = A_ << B_;
         if (C_ == 0)
             psw |= PSW_Z;
-        if (C_ & (1u << 15u))
+        if (C_ & USHORT_SIGN_BIT)
             psw |= PSW_N;
         break;
     case OC_SHR:
@@ -426,7 +434,7 @@ int Emulator::execute()
         C_ = (int16_t)A_ >> (int16_t)B_;
         if (C_ == 0)
             psw |= PSW_Z;
-        if (C_ & (1u << 15u))
+        if (C_ & USHORT_SIGN_BIT)
             psw |= PSW_N;
         break;
     case OC_LDR:
