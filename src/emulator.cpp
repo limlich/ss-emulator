@@ -358,7 +358,7 @@ int Emulator::execute()
             pc = B_;
         break;
     case OC_JGT:
-        if (((psw & PSW_N) == (psw & PSW_O)) && !(psw & PSW_Z)) // (N == O) && (Z == 0)
+        if (((bool)(psw & PSW_N) == (bool)(psw & PSW_O)) && !(psw & PSW_Z)) // (N == O) && (Z == 0)
             pc = B_;
         break;
     case OC_XCHG:
