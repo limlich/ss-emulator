@@ -361,11 +361,7 @@ int Emulator::execute()
         if (((psw & PSW_N) == (psw & PSW_O)) && !(psw & PSW_Z)) // (N == O) && (Z == 0)
             pc = B_;
         break;
-    case OC_XCHG: {
-        ushort temp = A_;
-        A_ = B_;
-        B_ = temp;
-    }
+    case OC_XCHG:
         break;
     case OC_ADD:
         C_ = A_ + B_;
